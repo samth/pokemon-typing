@@ -137,9 +137,19 @@ Co-Authored-By: Happy <yesreply@happy.engineering>
 ### Deployment
 
 - **Main branch**: `master` (legacy, not main)
-- **Auto-deploy**: Any push to master deploys to GitHub Pages
-- **Build time**: ~1-2 minutes for GitHub Pages to update
+- **Auto-deploy**: GitHub Actions workflow triggers on every push to master
+- **Workflow file**: `.github/workflows/deploy.yml`
+- **Build time**: ~10-20 seconds for GitHub Actions deployment
 - **No build step**: Just push index.html changes
+- **Verification**: Check deployment status with `gh run list --limit 1`
+- **Live site**: Changes appear at https://samth.github.io/pokemon-typing/ immediately after workflow completes
+
+**GitHub Actions Workflow**:
+- Triggers on every push to master
+- Uses official `actions/deploy-pages@v4`
+- Uploads entire repository as artifact
+- Deploys to GitHub Pages environment
+- Provides deployment URL in workflow output
 
 ### Branch Protection
 
