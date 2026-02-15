@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Home Row Typing Practice</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-dark: #1a1a2e;
+    --bg-mid: #16213e;
+    --bg-card: #0f3460;
+    --accent-red: #e94560;
+    --accent-yellow: #f5c518;
+    --accent-blue: #4cc9f0;
+    --accent-green: #06d6a0;
+    --text-light: #eaf0f6;
+    --text-dim: #8892a4;
+    --correct: #06d6a0;
+    --error: #e94560;
+    --current: #f5c518;
+    --pixel-shadow: 3px 3px 0px rgba(0,0,0,0.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-dark);
+    color: var(--text-light);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.06) 2px,
+      rgba(0,0,0,0.06) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  header {
+    width: 100%;
+    text-align: center;
+    padding: 28px 20px 12px;
+    position: relative;
+    z-index: 1;
+  }
+  header h1 {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 22px;
+    color: var(--accent-yellow);
+    text-shadow: 3px 3px 0 var(--accent-red), 0 0 20px rgba(245,197,24,0.3);
+    letter-spacing: 2px;
+  }
+  header .subtitle {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 8px;
+    letter-spacing: 1px;
+  }
+
+  /* Mode toggle */
+  .mode-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 16px auto;
+    padding: 12px 20px;
+    background: var(--bg-mid);
+    border: 2px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    max-width: 300px;
+    position: relative;
+    z-index: 1;
+  }
+  .mode-toggle label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: color 0.3s;
+  }
+  .mode-toggle label.active {
+    color: var(--accent-yellow);
+  }
+  .toggle-switch {
+    position: relative;
+    width: 60px;
+    height: 30px;
+    background: var(--bg-card);
+    border-radius: 15px;
+    border: 2px solid rgba(255,255,255,0.1);
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background: var(--accent-yellow);
+    border-radius: 50%;
+    transition: transform 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+  .toggle-switch.mlp::after {
+    transform: translateX(30px);
+    background: var(--accent-blue);
+  }
+
+  /* Hand position guide */
+  .hand-guide {
+    background: var(--bg-mid);
+    border: 2px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 16px 24px;
+    margin: 16px 20px;
+    max-width: 600px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+  .hand-guide .title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    color: var(--accent-green);
+    margin-bottom: 12px;
+  }
+  .keyboard-row {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    margin: 6px 0;
+    font-size: 12px;
+  }
+  .key {
+    background: var(--bg-card);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 4px;
+    padding: 8px 12px;
+    min-width: 36px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .key.home {
+    background: var(--accent-green);
+    color: #fff;
+    font-weight: 700;
+  }
+  .key.used {
+    background: var(--accent-blue);
+    color: #fff;
+  }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 14px 20px;
+    position: relative;
+    z-index: 1;
+  }
+  .stat-chip {
+    background: var(--bg-mid);
+    border: 2px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    min-width: 110px;
+    justify-content: center;
+  }
+  .stat-chip .stat-value {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 12px;
+    color: var(--accent-yellow);
+  }
+  .stat-chip .stat-label {
+    color: var(--text-dim);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Main game area */
+  .game-container {
+    width: 100%;
+    max-width: 780px;
+    padding: 0 20px 40px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .card {
+    background: linear-gradient(135deg, var(--bg-mid), var(--bg-card));
+    border: 2px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-red), var(--accent-yellow), var(--accent-blue), var(--accent-green));
+  }
+
+  /* Pokemon display */
+  .pokemon-display {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .pokemon-image-wrap {
+    width: 140px;
+    height: 140px;
+    margin: 16px auto 12px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pokemon-image-wrap::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    width: 100px;
+    height: 12px;
+    background: radial-gradient(ellipse, rgba(233,69,96,0.25) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .pokemon-image-wrap img {
+    width: 130px;
+    height: 130px;
+    object-fit: contain;
+    image-rendering: auto;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+    transition: transform 0.3s ease;
+  }
+  .pokemon-image-wrap img:hover {
+    transform: scale(1.05) translateY(-2px);
+  }
+  .pokemon-name {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px;
+    color: var(--accent-yellow);
+    text-shadow: var(--pixel-shadow);
+    text-transform: capitalize;
+    margin-bottom: 4px;
+  }
+  .pokemon-id {
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  /* Speech bubble */
+  .speech-bubble {
+    position: relative;
+    background: #fff;
+    color: #333;
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin: 0 auto 20px;
+    max-width: 500px;
+    font-size: 18px;
+    line-height: 1.6;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    animation: bubble-pop 0.4s ease;
+  }
+  .speech-bubble::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 20px solid transparent;
+    border-right: 20px solid transparent;
+    border-bottom: 20px solid #fff;
+    border-top: none;
+    margin-top: -1px;
+  }
+  .speech-bubble .char {
+    transition: color 0.05s, background 0.05s;
+    border-radius: 2px;
+    padding: 0 2px;
+    font-weight: 600;
+  }
+  .speech-bubble .char.correct {
+    color: var(--correct);
+  }
+  .speech-bubble .char.incorrect {
+    color: var(--error);
+    background: rgba(233,69,96,0.15);
+    text-decoration: underline;
+    text-decoration-color: var(--error);
+  }
+  .speech-bubble .char.current {
+    background: rgba(245,197,24,0.3);
+    border-bottom: 3px solid var(--current);
+    animation: blink-cursor 0.8s ease infinite;
+  }
+  .speech-bubble .char.pending {
+    color: #999;
+  }
+
+  @keyframes bubble-pop {
+    0% { transform: scale(0.8); opacity: 0; }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Loading state */
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    gap: 16px;
+  }
+  .pokeball-loader {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #e94560 50%, #eaf0f6 50%);
+    border: 3px solid #333;
+    position: relative;
+    animation: pokeball-spin 1s ease-in-out infinite;
+  }
+  .pokeball-loader::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #333;
+    transform: translateY(-50%);
+  }
+  .pokeball-loader::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 12px;
+    height: 12px;
+    background: #eaf0f6;
+    border: 3px solid #333;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
+  @keyframes pokeball-spin {
+    0% { transform: rotate(0deg); }
+    50% { transform: rotate(20deg); }
+    100% { transform: rotate(0deg); }
+  }
+  .loading-text {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    animation: pulse-text 1.2s ease infinite;
+  }
+  @keyframes pulse-text {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+
+  /* Typing area */
+  .typing-section {
+    margin-top: 32px;
+  }
+
+  .type-prompt {
+    text-align: center;
+    margin-bottom: 12px;
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: 'Press Start 2P', monospace;
+  }
+
+  @keyframes blink-cursor {
+    0%, 100% { border-bottom-color: var(--current); }
+    50% { border-bottom-color: transparent; }
+  }
+
+  /* Hidden input */
+  .hidden-input {
+    position: absolute;
+    left: -9999px;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+  }
+
+  /* Live stats during typing */
+  .live-stats {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    margin-top: 16px;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .live-stats span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .live-stats .value {
+    color: var(--accent-blue);
+    font-weight: 700;
+    font-size: 16px;
+  }
+
+  /* Results overlay */
+  .results-overlay {
+    display: none;
+    margin-top: 24px;
+    text-align: center;
+    animation: slide-up 0.4s ease;
+  }
+  .results-overlay.visible { display: block; }
+
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .results-grid {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .result-box {
+    background: rgba(0,0,0,0.3);
+    border-radius: 10px;
+    padding: 16px 24px;
+    border: 1px solid rgba(255,255,255,0.06);
+    min-width: 120px;
+  }
+  .result-box .result-value {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+  .result-box .result-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .result-acc .result-value { color: var(--accent-green); }
+
+  .grade {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 28px;
+    margin-bottom: 12px;
+  }
+  .grade-excellent { color: var(--accent-yellow); text-shadow: 0 0 20px rgba(245,197,24,0.5); }
+  .grade-great { color: var(--accent-green); }
+  .grade-good { color: var(--accent-blue); }
+  .grade-practice { color: var(--text-dim); }
+
+  /* Buttons */
+  .btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 12px;
+    padding: 14px 28px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+    box-shadow: 0 4px 0 rgba(0,0,0,0.3);
+    position: relative;
+    top: 0;
+  }
+  .btn:hover {
+    top: 2px;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+  }
+  .btn:active {
+    top: 4px;
+    box-shadow: 0 0px 0 rgba(0,0,0,0.3);
+  }
+  .btn-primary {
+    background: var(--accent-green);
+    color: #fff;
+  }
+  .btn-primary:hover {
+    background: #05c597;
+  }
+
+  /* Click hint */
+  .click-hint {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 10px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .click-hint.visible {
+    opacity: 1;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    header h1 { font-size: 16px; }
+    .card { padding: 20px; }
+    .speech-bubble { font-size: 15px; padding: 16px 20px; }
+    .stat-chip { min-width: 90px; padding: 6px 10px; }
+    .btn { font-size: 10px; padding: 12px 20px; }
+    .key { padding: 6px 8px; min-width: 28px; font-size: 10px; }
+    .pokemon-image-wrap { width: 110px; height: 110px; }
+    .pokemon-image-wrap img { width: 100px; height: 100px; }
+    .pokemon-name { font-size: 12px; }
+    .type-prompt { font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>HOME ROW TYPING</h1>
+  <div class="subtitle">learn to type with confidence</div>
+</header>
+
+<div class="mode-toggle">
+  <label id="label-pokemon" class="active">pokemon</label>
+  <div class="toggle-switch" id="toggle-switch"></div>
+  <label id="label-mlp">my little pony</label>
+</div>
+
+<div class="hand-guide">
+  <div class="title">your fingers go here</div>
+  <div class="keyboard-row">
+    <div class="key used">e</div>
+    <div class="key used">r</div>
+    <div class="key used">t</div>
+  </div>
+  <div class="keyboard-row">
+    <div class="key home">a</div>
+    <div class="key home">s</div>
+    <div class="key home">d</div>
+    <div class="key home">f</div>
+    <div class="key">g</div>
+    <div class="key">h</div>
+    <div class="key home">j</div>
+    <div class="key home">k</div>
+    <div class="key home">l</div>
+  </div>
+  <div class="keyboard-row">
+    <div class="key used">c</div>
+    <div class="key used">v</div>
+    <div class="key used">n</div>
+    <div class="key used">m</div>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-chip">
+    <div>
+      <div class="stat-value" id="streak">0</div>
+      <div class="stat-label">streak</div>
+    </div>
+  </div>
+  <div class="stat-chip">
+    <div>
+      <div class="stat-value" id="avg-acc">0%</div>
+      <div class="stat-label">avg accuracy</div>
+    </div>
+  </div>
+  <div class="stat-chip">
+    <div>
+      <div class="stat-value" id="total-rounds">0</div>
+      <div class="stat-label">completed</div>
+    </div>
+  </div>
+</div>
+
+<div class="game-container">
+  <div class="card">
+    <!-- Loading state -->
+    <div class="loading-state" id="loading">
+      <div class="pokeball-loader"></div>
+      <div class="loading-text" id="loading-text">loading...</div>
+    </div>
+
+    <!-- Game state -->
+    <div id="game" style="display:none;">
+      <div class="pokemon-display">
+        <div class="speech-bubble" id="speech-bubble"></div>
+
+        <div class="pokemon-image-wrap">
+          <img id="pokemon-img" src="" alt="Pokemon" />
+        </div>
+        <div class="pokemon-name" id="pokemon-name"></div>
+        <div class="pokemon-id" id="pokemon-id"></div>
+      </div>
+
+      <div class="typing-section">
+        <div class="type-prompt" id="type-prompt">type what they say</div>
+        <input type="text" class="hidden-input" id="input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+        <div class="click-hint visible" id="click-hint">click or start typing</div>
+
+        <div class="live-stats" id="live-stats" style="display:none;">
+          <span>accuracy <span class="value" id="live-acc">100</span>%</span>
+        </div>
+      </div>
+
+      <div class="results-overlay" id="results">
+        <div class="grade" id="grade"></div>
+        <div class="results-grid">
+          <div class="result-box result-acc">
+            <div class="result-value" id="final-acc">0%</div>
+            <div class="result-label">accuracy</div>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="next-btn" onclick="loadNewSentence()">next sentence</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// === MY LITTLE PONY DATA ===
+// Using verified PNG images from Internet Archive (archive.org)
+const mlpCharacters = [
+  {
+    id: 1,
+    name: "twilight sparkle",
+    imageUrl: "https://archive.org/download/pie_20231016/sparkle.png",
+    theme: "magic"
+  },
+  {
+    id: 2,
+    name: "rainbow dash",
+    imageUrl: "https://archive.org/download/pie_20231016/dash.png",
+    theme: "fast"
+  },
+  {
+    id: 3,
+    name: "pinkie pie",
+    imageUrl: "https://archive.org/download/pie_20231016/pie.png",
+    theme: "fun"
+  },
+  {
+    id: 4,
+    name: "fluttershy",
+    imageUrl: "https://archive.org/download/mlppng/Fluttershy_vector.png",
+    theme: "kind"
+  },
+  {
+    id: 5,
+    name: "rarity",
+    imageUrl: "https://archive.org/download/mlppng/Rarity2.png",
+    theme: "elegant"
+  },
+  {
+    id: 6,
+    name: "applejack",
+    imageUrl: "https://archive.org/download/pie_20231016/jack.png",
+    theme: "honest"
+  }
+];
+
+// === SENTENCE BANK ===
+// Only uses home row keys (a,s,d,f,g,h,j,k,l) + close keys (e,r,t,c,v,n,m)
+const sentences = {
+  general: [
+    "ask a lad",
+    "she came",
+    "dad has a glass",
+    "take a seat",
+    "a red cat",
+    "the green tea",
+    "a tall tree",
+    "a safe trek",
+    "came here",
+    "rest here",
+    "she shared her green tea",
+    "make the craft neat",
+    "these jars are large",
+    "a hare rests near the tree",
+    "the garden has several ferns"
+  ],
+
+  // MLP themed
+  magic: [
+    "read a card",
+    "learn fast",
+    "the stars",
+    "share secrets",
+    "seek and learn",
+    "smart and neat skill"
+  ],
+
+  fast: [
+    "race ahead",
+    "red streak",
+    "dash fast",
+    "reach dreams",
+    "never rest",
+    "great speed ahead"
+  ],
+
+  fun: [
+    "dance a lot",
+    "share cake",
+    "red hat",
+    "a safe event",
+    "laughter here",
+    "have a great time"
+  ],
+
+  kind: [
+    "she cares",
+    "gentle heart",
+    "calm hare",
+    "helps deer",
+    "tend garden",
+    "treat all creatures safe"
+  ],
+
+  elegant: [
+    "stellar craft",
+    "neat and classy",
+    "dress match",
+    "elegant vest",
+    "theatre event",
+    "make garments match"
+  ],
+
+  honest: [
+    "hard tasks",
+    "fresh treats",
+    "an earnest lad",
+    "green harvest",
+    "grand farm",
+    "harvest great treats"
+  ],
+
+  // Pokemon type-based sentences
+  normal: [
+    "a calm sort",
+    "rests here",
+    "a gentle one",
+    "common creature rests here",
+    "meets me near the tall grass"
+  ],
+  fire: [
+    "red flames",
+    "hot and red",
+    "flame dancer",
+    "flames and heat here",
+    "a hot red creature"
+  ],
+  water: [
+    "near the lake",
+    "calm sea lover",
+    "at the stream",
+    "she dances near the lake",
+    "loves the deep sea"
+  ],
+  electric: [
+    "fast shock",
+    "charged jolt",
+    "crackling flash",
+    "creates a charge",
+    "shocking element"
+  ],
+  grass: [
+    "green leaves",
+    "fresh garden",
+    "seeds and vines",
+    "leaves scatter here",
+    "garden character"
+  ],
+  ice: [
+    "frosty chill",
+    "cold and calm",
+    "chilled one",
+    "creates a chill",
+    "cold northern hale"
+  ],
+  fighting: [
+    "strong and fast",
+    "trained hard",
+    "steadfast one",
+    "masters attacks",
+    "skilled challenger"
+  ],
+  poison: [
+    "dark danger",
+    "strange harm",
+    "mean attack",
+    "shade and danger here",
+    "clever trance effect"
+  ],
+  ground: [
+    "near the sand",
+    "earthen one",
+    "desert sand",
+    "dances near stone",
+    "rare earth creature"
+  ],
+  flying: [
+    "clear skies",
+    "graceful sort",
+    "reaches alta",
+    "stellar and fast",
+    "majestic creature"
+  ],
+  psychic: [
+    "mental calm",
+    "reads minds",
+    "sage senses",
+    "strong mental strength",
+    "creates strange dreams"
+  ],
+  bug: [
+    "small critter",
+    "green and fast",
+    "forest nest",
+    "emerges fast",
+    "shaded creature"
+  ],
+  rock: [
+    "hard stone",
+    "chiseled one",
+    "ancient sort",
+    "stone and hard edges",
+    "oldest cavern creature"
+  ],
+  ghost: [
+    "dark shade",
+    "ethereal one",
+    "vanishes fast",
+    "strange shade emerges",
+    "remelts at dusk"
+  ],
+  dragon: [
+    "majestic one",
+    "ancient rare",
+    "fierce dragon",
+    "legendary creature",
+    "grand scaled sort"
+  ],
+  dark: [
+    "clever scheme",
+    "stealthy one",
+    "dark shades",
+    "lurks near darkness",
+    "crafty and fierce"
+  ],
+  steel: [
+    "hard metal",
+    "strong defense",
+    "reflects all",
+    "metal character emerges",
+    "deflects damage"
+  ],
+  fairy: [
+    "gentle charm",
+    "magical one",
+    "ethereal rare",
+    "enchants all near",
+    "rare creature here"
+  ]
+};
+
+// === STATE ===
+let state = {
+  targetText: '',
+  typed: '',
+  startTime: null,
+  finished: false,
+  totalKeystrokes: 0,
+  correctKeystrokes: 0,
+  streak: 0,
+  totalRounds: 0,
+  accuracies: [],
+  currentCharacter: null,
+  mode: localStorage.getItem('typingMode') || 'pokemon', // 'pokemon' or 'mlp'
+};
+
+// === DOM REFS ===
+const $loading = document.getElementById('loading');
+const $game = document.getElementById('game');
+const $speechBubble = document.getElementById('speech-bubble');
+const $input = document.getElementById('input');
+const $pokemonImg = document.getElementById('pokemon-img');
+const $pokemonName = document.getElementById('pokemon-name');
+const $pokemonId = document.getElementById('pokemon-id');
+const $liveAcc = document.getElementById('live-acc');
+const $liveStats = document.getElementById('live-stats');
+const $results = document.getElementById('results');
+const $finalAcc = document.getElementById('final-acc');
+const $grade = document.getElementById('grade');
+const $clickHint = document.getElementById('click-hint');
+const $toggleSwitch = document.getElementById('toggle-switch');
+const $labelPokemon = document.getElementById('label-pokemon');
+const $labelMlp = document.getElementById('label-mlp');
+
+// === API ===
+async function fetchPokemon(retries = 3) {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const id = Math.floor(Math.random() * 898) + 1;
+
+      const pokemonRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+
+      if (!pokemonRes.ok) throw new Error('API error');
+
+      const pokemon = await pokemonRes.json();
+
+      return {
+        id: id,
+        name: pokemon.name,
+        imageUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`,
+        types: pokemon.types.map(t => t.type.name)
+      };
+    } catch (e) {
+      console.warn(`Attempt ${attempt + 1} failed:`, e.message);
+      if (attempt === retries - 1) throw e;
+    }
+  }
+}
+
+function getMlpCharacter() {
+  const character = mlpCharacters[Math.floor(Math.random() * mlpCharacters.length)];
+  return Promise.resolve({
+    id: character.id,
+    name: character.name,
+    imageUrl: character.imageUrl,
+    theme: character.theme
+  });
+}
+
+async function fetchCharacter() {
+  if (state.mode === 'mlp') {
+    return await getMlpCharacter();
+  } else {
+    return await fetchPokemon();
+  }
+}
+
+function getSentenceForCharacter(character) {
+  let pool = [];
+
+  if (state.mode === 'mlp') {
+    // MLP characters use their theme
+    if (character.theme && sentences[character.theme]) {
+      pool = [...sentences[character.theme]];
+    }
+    pool = [...pool, ...sentences.general];
+  } else {
+    // Pokemon use their type(s)
+    if (character.types && character.types.length > 0) {
+      // Use the primary type (first type)
+      const primaryType = character.types[0];
+      if (sentences[primaryType]) {
+        pool = [...sentences[primaryType]];
+      }
+
+      // Also add sentences from secondary type if it exists
+      if (character.types.length > 1) {
+        const secondaryType = character.types[1];
+        if (sentences[secondaryType]) {
+          pool = [...pool, ...sentences[secondaryType]];
+        }
+      }
+    }
+
+    // Add general sentences as fallback
+    if (pool.length === 0) {
+      pool = [...sentences.general];
+    }
+  }
+
+  // Progressive difficulty based on completed rounds
+  let maxLength;
+  if (state.totalRounds < 3) {
+    maxLength = 15; // Very short for beginners
+  } else if (state.totalRounds < 6) {
+    maxLength = 25; // Medium length
+  } else if (state.totalRounds < 10) {
+    maxLength = 35; // Longer sentences
+  } else {
+    maxLength = Infinity; // Any length
+  }
+
+  // Filter by length
+  const filtered = pool.filter(s => s.length <= maxLength);
+
+  // If no sentences match the length requirement, use the pool as-is
+  const finalPool = filtered.length > 0 ? filtered : pool;
+
+  // Pick a random sentence from the pool
+  return finalPool[Math.floor(Math.random() * finalPool.length)];
+}
+
+// === GAME LOGIC ===
+async function loadNewSentence() {
+  $loading.style.display = 'flex';
+  $game.style.display = 'none';
+  $results.classList.remove('visible');
+
+  try {
+    // Fetch character and pick sentence
+    const character = await fetchCharacter();
+    const sentence = getSentenceForCharacter(character);
+
+    state.currentCharacter = character;
+    state.targetText = sentence;
+    state.typed = '';
+    state.startTime = null;
+    state.finished = false;
+    state.totalKeystrokes = 0;
+    state.correctKeystrokes = 0;
+
+    // Update character display
+    $pokemonImg.src = character.imageUrl;
+    $pokemonImg.alt = character.name;
+    $pokemonName.textContent = character.name;
+    $pokemonId.textContent = `#${String(character.id).padStart(3, '0')}`;
+
+    renderPrompt();
+
+    $loading.style.display = 'none';
+    $game.style.display = 'block';
+    $liveStats.style.display = 'none';
+    $liveAcc.textContent = '100';
+    $clickHint.classList.add('visible');
+
+    $input.value = '';
+
+    // Wait for image to load then focus
+    $pokemonImg.onload = () => {
+      setTimeout(() => $input.focus(), 100);
+    };
+    // Fallback focus
+    setTimeout(() => $input.focus(), 500);
+
+  } catch (e) {
+    console.error('Failed to load character:', e);
+    // Retry with a new one
+    setTimeout(loadNewSentence, 500);
+  }
+}
+
+function renderPrompt() {
+  const target = state.targetText;
+  const typed = state.typed;
+  let html = '';
+
+  for (let i = 0; i < target.length; i++) {
+    let cls = 'char ';
+    if (i < typed.length) {
+      cls += typed[i] === target[i] ? 'correct' : 'incorrect';
+    } else if (i === typed.length) {
+      cls += 'current';
+    } else {
+      cls += 'pending';
+    }
+
+    let char = target[i];
+    if (char === ' ') char = '&nbsp;';
+    else char = char.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    html += `<span class="${cls}">${char}</span>`;
+  }
+
+  $speechBubble.innerHTML = html;
+}
+
+function calculateAccuracy() {
+  if (state.totalKeystrokes === 0) return 100;
+  return Math.round((state.correctKeystrokes / state.totalKeystrokes) * 100);
+}
+
+function getGrade(accuracy) {
+  if (accuracy >= 98) return { cls: 'grade-excellent', text: 'excellent' };
+  if (accuracy >= 90) return { cls: 'grade-great', text: 'great job' };
+  if (accuracy >= 75) return { cls: 'grade-good', text: 'good work' };
+  return { cls: 'grade-practice', text: 'keep practicing' };
+}
+
+function finishRound() {
+  state.finished = true;
+  const accuracy = calculateAccuracy();
+  const grade = getGrade(accuracy);
+
+  // Update stats
+  if (accuracy >= 90) {
+    state.streak++;
+  } else {
+    state.streak = 0;
+  }
+  state.totalRounds++;
+  state.accuracies.push(accuracy);
+
+  $finalAcc.textContent = accuracy + '%';
+  $grade.textContent = grade.text;
+  $grade.className = 'grade ' + grade.cls;
+
+  $liveStats.style.display = 'none';
+  $results.classList.add('visible');
+
+  updateGlobalStats();
+
+  // Focus the next button
+  setTimeout(() => document.getElementById('next-btn').focus(), 300);
+}
+
+function updateGlobalStats() {
+  document.getElementById('streak').textContent = state.streak;
+  document.getElementById('total-rounds').textContent = state.totalRounds;
+
+  const avgAcc = state.accuracies.length > 0
+    ? Math.round(state.accuracies.reduce((a, b) => a + b, 0) / state.accuracies.length)
+    : 0;
+  document.getElementById('avg-acc').textContent = avgAcc + '%';
+}
+
+// === INPUT HANDLING ===
+$input.addEventListener('input', (e) => {
+  if (state.finished) return;
+
+  const newValue = e.target.value;
+  const target = state.targetText;
+
+  // Start timer on first keypress
+  if (!state.startTime && newValue.length > 0) {
+    state.startTime = Date.now();
+    $clickHint.classList.remove('visible');
+    $liveStats.style.display = 'flex';
+  }
+
+  // Track keystrokes for accuracy
+  if (newValue.length > state.typed.length) {
+    // Character was added
+    const addedIndex = newValue.length - 1;
+    state.totalKeystrokes++;
+    if (addedIndex < target.length && newValue[addedIndex] === target[addedIndex]) {
+      state.correctKeystrokes++;
+    }
+  }
+
+  // Prevent typing beyond target length
+  if (newValue.length > target.length) {
+    $input.value = newValue.substring(0, target.length);
+    state.typed = $input.value;
+  } else {
+    state.typed = newValue;
+  }
+
+  renderPrompt();
+
+  // Update live stats
+  $liveAcc.textContent = calculateAccuracy();
+
+  // Check completion
+  if (state.typed.length === target.length) {
+    finishRound();
+  }
+});
+
+// Prevent backspace from being blocked
+$input.addEventListener('keydown', (e) => {
+  if (state.finished && e.key !== 'Tab') {
+    e.preventDefault();
+    return;
+  }
+});
+
+// Click on speech bubble to focus input
+$speechBubble.addEventListener('click', () => {
+  $input.focus();
+  $clickHint.classList.remove('visible');
+});
+
+// Global keydown to capture focus
+document.addEventListener('keydown', (e) => {
+  if (state.finished) return;
+  if (e.target !== $input && !e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1) {
+    $input.focus();
+  }
+});
+
+// Blur detection for hint
+$input.addEventListener('blur', () => {
+  if (!state.finished && state.typed.length === 0) {
+    $clickHint.classList.add('visible');
+  }
+});
+$input.addEventListener('focus', () => {
+  $clickHint.classList.remove('visible');
+});
+
+// === MODE TOGGLE ===
+function updateModeUI() {
+  if (state.mode === 'mlp') {
+    $toggleSwitch.classList.add('mlp');
+    $labelPokemon.classList.remove('active');
+    $labelMlp.classList.add('active');
+  } else {
+    $toggleSwitch.classList.remove('mlp');
+    $labelPokemon.classList.add('active');
+    $labelMlp.classList.remove('active');
+  }
+}
+
+$toggleSwitch.addEventListener('click', () => {
+  if (state.mode === 'pokemon') {
+    state.mode = 'mlp';
+  } else {
+    state.mode = 'pokemon';
+  }
+  localStorage.setItem('typingMode', state.mode);
+  updateModeUI();
+
+  // Load new character in the new mode
+  if (!state.finished) {
+    loadNewSentence();
+  }
+});
+
+$labelPokemon.addEventListener('click', () => {
+  if (state.mode !== 'pokemon') {
+    $toggleSwitch.click();
+  }
+});
+
+$labelMlp.addEventListener('click', () => {
+  if (state.mode !== 'mlp') {
+    $toggleSwitch.click();
+  }
+});
+
+// === INIT ===
+updateModeUI();
+loadNewSentence();
+</script>
+</body>
+</html>
