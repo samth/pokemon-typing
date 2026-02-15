@@ -62,10 +62,17 @@ This is a beginner-friendly typing trainer web app featuring Pokemon and My Litt
 ### Sentence Design Rules
 
 **Simple Mode** (home row + close keys only):
-- Allowed keys: `a s d f g h j k l` (home row) + `e r t c v n m` (close)
-- NO other letters (no: `b i o p q u w x y z`)
-- Keep punctuation minimal
+- **Allowed keys**: `a s d f g h j k l` (home row) + `e r t c v n m` (close) + space
+- **NO other letters**: (forbidden: `b i o p q u w x y z`)
+- Keep punctuation minimal (no commas, periods, apostrophes, etc.)
 - Progressive length: 15 → 25 → 35 → unlimited chars based on rounds
+
+**IMPORTANT - Validation System**:
+- The `ALLOWED_KEYS` constant in index.html defines valid characters
+- All simple mode sentences are validated on page load
+- Check browser console for validation errors (❌ marks invalid sentences)
+- The keyboard diagram is generated from the same constant to ensure accuracy
+- **Always check console after adding new sentences!**
 
 **Advanced Mode**:
 - Pokemon: Use PokeAPI species flavor_text_entries (English only)
@@ -154,6 +161,40 @@ Before pushing changes:
 - [ ] Ensure all sentences use valid characters (simple mode)
 
 ## Common Tasks
+
+### Updating the Keyboard Diagram
+
+The keyboard diagram in the HTML must accurately reflect real QWERTY layout with proper stagger offsets:
+
+```
+     W  E  R  T        ← Top row offset ~72px left
+  A  S  D  F  G  H  J  K  L    ← Home row (base)
+      X  C  V  B  N  M  ← Bottom row offset ~90px left
+```
+
+**Actual QWERTY positions**:
+- E is above D (3rd key)
+- R is above F (4th key)
+- T is above G (5th key)
+- C is below D (3rd key)
+- V is below F (4th key)
+- N is below J (7th key)
+- M is below K (8th key)
+
+**Implementation**:
+- Ghost keys (w, x, b) with `opacity: 0.3` show unused positions
+- Top row has `padding-left: 72px` for QWERTY offset
+- Bottom row has `padding-left: 90px` for ZXCV offset
+- Green keys (`.home`): home row positions
+- Blue keys (`.used`): allowed non-home-row keys
+- Gray ghost keys: show real keyboard layout but not used
+
+**Critical**: When modifying the diagram:
+1. Maintain accurate QWERTY row stagger offsets
+2. Include ghost keys for spatial context
+3. Update `ALLOWED_KEYS` constant if adding new keys
+4. Test visual layout matches a real keyboard
+5. Verify keyboard diagram matches allowed keys exactly
 
 ### Adding Pokemon Type Sentences
 

@@ -571,7 +571,8 @@
 
 <div class="hand-guide">
   <div class="title">your fingers go here</div>
-  <div class="keyboard-row">
+  <div class="keyboard-row" style="padding-left: 72px;">
+    <div class="key" style="opacity: 0.3; pointer-events: none;">w</div>
     <div class="key used">e</div>
     <div class="key used">r</div>
     <div class="key used">t</div>
@@ -581,15 +582,17 @@
     <div class="key home">s</div>
     <div class="key home">d</div>
     <div class="key home">f</div>
-    <div class="key">g</div>
-    <div class="key">h</div>
+    <div class="key home">g</div>
+    <div class="key home">h</div>
     <div class="key home">j</div>
     <div class="key home">k</div>
     <div class="key home">l</div>
   </div>
-  <div class="keyboard-row">
+  <div class="keyboard-row" style="padding-left: 90px;">
+    <div class="key" style="opacity: 0.3; pointer-events: none;">x</div>
     <div class="key used">c</div>
     <div class="key used">v</div>
+    <div class="key" style="opacity: 0.3; pointer-events: none;">b</div>
     <div class="key used">n</div>
     <div class="key used">m</div>
   </div>
@@ -702,8 +705,23 @@ const mlpCharacters = [
   }
 ];
 
+// === ALLOWED KEYS FOR SIMPLE MODE ===
+const ALLOWED_KEYS = {
+  homeRow: ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+  closeKeys: ['e', 'r', 't', 'c', 'v', 'n', 'm'],
+  special: [' '] // space is allowed
+};
+
+// Flatten to a single set for validation
+const ALLOWED_CHARS = new Set([
+  ...ALLOWED_KEYS.homeRow,
+  ...ALLOWED_KEYS.closeKeys,
+  ...ALLOWED_KEYS.special
+]);
+
 // === SENTENCE BANK ===
-// Only uses home row keys (a,s,d,f,g,h,j,k,l) + close keys (e,r,t,c,v,n,m)
+// Simple mode: Only uses home row keys (a,s,d,f,g,h,j,k,l) + close keys (e,r,t,c,v,n,m) + space
+// Advanced mode: No restrictions
 const sentences = {
   general: [
     "ask a lad",
@@ -1368,6 +1386,65 @@ $labelMlp.addEventListener('click', () => {
     $toggleSwitch.click();
   }
 });
+
+// === SENTENCE VALIDATION ===
+function validateSentence(sentence, sentenceKey) {
+  const invalidChars = [];
+  const lowerSentence = sentence.toLowerCase();
+
+  for (let i = 0; i < lowerSentence.length; i++) {
+    const char = lowerSentence[i];
+    if (!ALLOWED_CHARS.has(char)) {
+      invalidChars.push(char);
+    }
+  }
+
+  if (invalidChars.length > 0) {
+    console.error(
+      `❌ Invalid sentence in "${sentenceKey}": "${sentence}"\n` +
+      `   Contains disallowed characters: ${[...new Set(invalidChars)].join(', ')}\n` +
+      `   Allowed: ${Array.from(ALLOWED_CHARS).filter(c => c !== ' ').join(', ')}`
+    );
+    return false;
+  }
+  return true;
+}
+
+function validateAllSentences() {
+  console.log('🔍 Validating simple mode sentences...');
+  let allValid = true;
+  let totalChecked = 0;
+
+  // Check all non-advanced sentence pools
+  for (const [key, sentenceArray] of Object.entries(sentences)) {
+    // Skip advanced mode sentences (they can have any characters)
+    if (key.endsWith('_advanced')) continue;
+
+    for (const sentence of sentenceArray) {
+      totalChecked++;
+      if (!validateSentence(sentence, key)) {
+        allValid = false;
+      }
+    }
+  }
+
+  if (allValid) {
+    console.log(`✅ All ${totalChecked} simple mode sentences are valid!`);
+  } else {
+    console.warn(`⚠️  Some sentences contain invalid characters. See errors above.`);
+  }
+
+  return allValid;
+}
+
+// Run validation in development (comment out in production if needed)
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+  console.log('🔧 Development mode: Running sentence validation...');
+  validateAllSentences();
+} else {
+  // Also validate in production but don't log as much
+  validateAllSentences();
+}
 
 // === ADVANCED MODE TOGGLE ===
 const $advancedMode = document.getElementById('advanced-mode');
