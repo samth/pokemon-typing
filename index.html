@@ -559,6 +559,16 @@
   <label id="label-mlp">my little pony</label>
 </div>
 
+<div class="mode-toggle">
+  <input type="checkbox" id="advanced-mode" style="display:none;">
+  <label for="advanced-mode" style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+    <div id="advanced-checkbox" style="width: 20px; height: 20px; border: 2px solid var(--text-dim); border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">
+      <div style="display: none; color: var(--accent-yellow); font-size: 14px;">✓</div>
+    </div>
+    <span id="advanced-label" style="font-family: 'Press Start 2P', monospace; font-size: 9px; color: var(--text-dim);">advanced mode (full sentences)</span>
+  </label>
+</div>
+
 <div class="hand-guide">
   <div class="title">your fingers go here</div>
   <div class="keyboard-row">
@@ -713,7 +723,7 @@ const sentences = {
     "the garden has several ferns"
   ],
 
-  // MLP themed
+  // MLP themed - simple
   magic: [
     "read a card",
     "learn fast",
@@ -766,6 +776,55 @@ const sentences = {
     "green harvest",
     "grand farm",
     "harvest great treats"
+  ],
+
+  // MLP themed - advanced (full sentences)
+  magic_advanced: [
+    "Twilight Sparkle has mastered countless magical spells through dedicated research and careful study.",
+    "The young unicorn discovered that friendship itself can be the most powerful form of magic in Equestria.",
+    "Ancient scrolls reveal secrets of celestial harmony that she eagerly shares with her dearest friends.",
+    "Every challenge becomes an opportunity to learn something new and share that knowledge with others.",
+    "Through systematic experimentation and theoretical analysis, she unlocked the secrets of dimensional travel."
+  ],
+
+  fast_advanced: [
+    "Rainbow Dash performs incredible aerial maneuvers that leave everypony watching in complete amazement.",
+    "She dreams of joining the Wonderbolts and becoming the fastest flyer in all of Equestria someday.",
+    "With determination and natural athletic talent, she cleared the sky over Ponyville in ten seconds flat.",
+    "Nothing can slow her down when she sets her mind to achieving a seemingly impossible goal.",
+    "Her legendary sonic rainboom creates a spectacular explosion of colors across the entire sky."
+  ],
+
+  fun_advanced: [
+    "Pinkie Pie throws the most spectacular parties that bring joy and laughter to everypony in town.",
+    "Her cheerful energy and random acts of kindness brighten even the gloomiest days in Ponyville.",
+    "She can sense when someone needs cheering up and immediately springs into action with games and treats.",
+    "Every celebration she plans includes delicious desserts, festive decorations, and plenty of fun activities.",
+    "Her infectious enthusiasm and genuine love for her friends makes every gathering truly memorable."
+  ],
+
+  kind_advanced: [
+    "Fluttershy gently cares for every woodland creature with endless patience and compassionate understanding.",
+    "Though naturally shy, she finds courage when her animal friends need protection from any danger.",
+    "Her soft voice and tender heart create a sanctuary where all creatures feel safe and loved.",
+    "She communicates with animals in ways that other ponies simply cannot understand or replicate.",
+    "Every small critter receives her full attention and the gentlest, most thoughtful care imaginable."
+  ],
+
+  elegant_advanced: [
+    "Rarity designs the most exquisite fashions with impeccable attention to every tiny detail and embellishment.",
+    "Her refined taste and artistic vision transform ordinary fabrics into stunning works of wearable art.",
+    "She believes that generosity and elegance should always go together in perfect harmonious balance.",
+    "Each garment she creates reflects her dedication to beauty, quality, and making others feel special.",
+    "Her boutique showcases the finest craftsmanship in all of Equestria with sophisticated and stylish designs."
+  ],
+
+  honest_advanced: [
+    "Applejack works from sunrise to sunset harvesting the finest apples in all of Sweet Apple Acres.",
+    "Her strong family values and unwavering honesty earn the trust and respect of every pony around.",
+    "She believes that hard work, dependability, and keeping your word are the foundations of true friendship.",
+    "The apple harvest requires dedication, strength, and traditional farming methods passed down through generations.",
+    "Her straightforward nature and practical wisdom help solve problems with common sense and genuine integrity."
   ],
 
   // Pokemon type-based sentences
@@ -910,6 +969,7 @@ let state = {
   accuracies: [],
   currentCharacter: null,
   mode: localStorage.getItem('typingMode') || 'pokemon', // 'pokemon' or 'mlp'
+  advancedMode: localStorage.getItem('advancedMode') === 'true', // Use API sentences
 };
 
 // === DOM REFS ===
@@ -942,11 +1002,39 @@ async function fetchPokemon(retries = 3) {
 
       const pokemon = await pokemonRes.json();
 
+      let flavorText = null;
+
+      // Fetch species data for flavor text if in advanced mode
+      if (state.advancedMode) {
+        try {
+          const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`);
+          if (speciesRes.ok) {
+            const species = await speciesRes.json();
+            // Get English flavor text entries
+            const englishEntries = species.flavor_text_entries.filter(entry => entry.language.name === 'en');
+            if (englishEntries.length > 0) {
+              // Pick a random English entry
+              const randomEntry = englishEntries[Math.floor(Math.random() * englishEntries.length)];
+              // Clean up the flavor text (remove form feeds and extra whitespace)
+              flavorText = randomEntry.flavor_text
+                .replace(/\f/g, ' ')
+                .replace(/\n/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to fetch species data:', e);
+          // Continue without flavor text
+        }
+      }
+
       return {
         id: id,
         name: pokemon.name,
         imageUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`,
-        types: pokemon.types.map(t => t.type.name)
+        types: pokemon.types.map(t => t.type.name),
+        flavorText: flavorText
       };
     } catch (e) {
       console.warn(`Attempt ${attempt + 1} failed:`, e.message);
@@ -974,14 +1062,27 @@ async function fetchCharacter() {
 }
 
 function getSentenceForCharacter(character) {
+  // If advanced mode is on and we have flavor text from Pokemon API, use it
+  if (state.advancedMode && state.mode === 'pokemon' && character.flavorText) {
+    return character.flavorText;
+  }
+
   let pool = [];
 
   if (state.mode === 'mlp') {
     // MLP characters use their theme
-    if (character.theme && sentences[character.theme]) {
-      pool = [...sentences[character.theme]];
+    if (character.theme) {
+      // Use advanced sentences if advanced mode is on
+      const themeKey = state.advancedMode ? character.theme + '_advanced' : character.theme;
+      if (sentences[themeKey]) {
+        pool = [...sentences[themeKey]];
+      }
     }
-    pool = [...pool, ...sentences.general];
+
+    // Add general sentences as fallback only in simple mode
+    if (!state.advancedMode) {
+      pool = [...pool, ...sentences.general];
+    }
   } else {
     // Pokemon use their type(s)
     if (character.types && character.types.length > 0) {
@@ -1006,26 +1107,28 @@ function getSentenceForCharacter(character) {
     }
   }
 
-  // Progressive difficulty based on completed rounds
-  let maxLength;
-  if (state.totalRounds < 3) {
-    maxLength = 15; // Very short for beginners
-  } else if (state.totalRounds < 6) {
-    maxLength = 25; // Medium length
-  } else if (state.totalRounds < 10) {
-    maxLength = 35; // Longer sentences
-  } else {
-    maxLength = Infinity; // Any length
+  // Progressive difficulty based on completed rounds (only for simple mode)
+  if (!state.advancedMode) {
+    let maxLength;
+    if (state.totalRounds < 3) {
+      maxLength = 15; // Very short for beginners
+    } else if (state.totalRounds < 6) {
+      maxLength = 25; // Medium length
+    } else if (state.totalRounds < 10) {
+      maxLength = 35; // Longer sentences
+    } else {
+      maxLength = Infinity; // Any length
+    }
+
+    // Filter by length
+    const filtered = pool.filter(s => s.length <= maxLength);
+
+    // If no sentences match the length requirement, use the pool as-is
+    pool = filtered.length > 0 ? filtered : pool;
   }
 
-  // Filter by length
-  const filtered = pool.filter(s => s.length <= maxLength);
-
-  // If no sentences match the length requirement, use the pool as-is
-  const finalPool = filtered.length > 0 ? filtered : pool;
-
   // Pick a random sentence from the pool
-  return finalPool[Math.floor(Math.random() * finalPool.length)];
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 // === GAME LOGIC ===
@@ -1265,6 +1368,41 @@ $labelMlp.addEventListener('click', () => {
     $toggleSwitch.click();
   }
 });
+
+// === ADVANCED MODE TOGGLE ===
+const $advancedMode = document.getElementById('advanced-mode');
+const $advancedCheckbox = document.getElementById('advanced-checkbox');
+const $advancedLabel = document.getElementById('advanced-label');
+
+function updateAdvancedModeUI() {
+  const checkmark = $advancedCheckbox.querySelector('div');
+  if (state.advancedMode) {
+    $advancedCheckbox.style.background = 'var(--accent-yellow)';
+    $advancedCheckbox.style.borderColor = 'var(--accent-yellow)';
+    $advancedLabel.style.color = 'var(--accent-yellow)';
+    checkmark.style.display = 'block';
+  } else {
+    $advancedCheckbox.style.background = 'transparent';
+    $advancedCheckbox.style.borderColor = 'var(--text-dim)';
+    $advancedLabel.style.color = 'var(--text-dim)';
+    checkmark.style.display = 'none';
+  }
+}
+
+$advancedMode.addEventListener('change', () => {
+  state.advancedMode = $advancedMode.checked;
+  localStorage.setItem('advancedMode', state.advancedMode);
+  updateAdvancedModeUI();
+
+  // Reload sentence with new difficulty level
+  if (!state.finished) {
+    loadNewSentence();
+  }
+});
+
+// Initialize checkbox state
+$advancedMode.checked = state.advancedMode;
+updateAdvancedModeUI();
 
 // === INIT ===
 updateModeUI();
