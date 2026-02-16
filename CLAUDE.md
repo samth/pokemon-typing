@@ -174,37 +174,44 @@ Before pushing changes:
 
 ### Updating the Keyboard Diagram
 
-The keyboard diagram in the HTML must accurately reflect real QWERTY layout with proper stagger offsets:
+The keyboard diagram in the HTML must accurately reflect real QWERTY layout with proper stagger offsets.
 
+**CRITICAL - QWERTY Stagger Pattern**:
+
+On a real QWERTY keyboard, rows stagger from LEFT to RIGHT as you go down:
 ```
-     W  E  R  T        ← Top row offset ~72px left
-  A  S  D  F  G  H  J  K  L    ← Home row (base)
-      X  C  V  B  N  M  ← Bottom row offset ~90px left
+Q W E R T Y U ...           ← Top row: 0px (leftmost)
+  A S D F G H J K L ;       ← Home row: 18px (shift right)
+    Z X C V B N M ,         ← Bottom row: 54px (shift more right)
 ```
 
-**Actual QWERTY positions**:
-- E is above D (3rd key)
-- R is above F (4th key)
-- T is above G (5th key)
-- C is below D (3rd key)
-- V is below F (4th key)
-- N is below J (7th key)
-- M is below K (8th key)
+**Correct padding values**:
+- **QWERTY row (top)**: `0px` - leftmost position, NO padding
+- **ASDF row (home)**: `18px` - shifted RIGHT by ~0.5 key width
+- **ZXCV row (bottom)**: `54px` - shifted RIGHT by ~1.5 key widths
+
+**Why this matters**:
+- The ASDF row is NOT the baseline - the QWERTY row is!
+- Rows shift RIGHT as you go down, creating the characteristic diagonal stagger
+- E is above D, R above F, T above G - because home row is shifted right
+- C is below D, V below F - because bottom row is shifted even more right
 
 **Implementation**:
-- Ghost keys (w, x, b) with `opacity: 0.3` show unused positions
-- Top row has `padding-left: 72px` for QWERTY offset
-- Bottom row has `padding-left: 90px` for ZXCV offset
-- Green keys (`.home`): home row positions
-- Blue keys (`.used`): allowed non-home-row keys
-- Gray ghost keys: show real keyboard layout but not used
+- Ghost keys (q, w, y, u, z, x, b, ;, ,) at `opacity: 0.2`
+- Green (`.home`): Home row keys (a-l) where fingers rest
+- Blue (`.used`): Allowed close keys (e, r, t, c, v, n, m)
+- Faint gray: Context keys showing full QWERTY layout
+
+**Common mistake to avoid**:
+❌ Setting home row to 0 and shifting QWERTY/ZXCV rows left - this is backwards!
+✅ QWERTY at 0, shift ASDF right, shift ZXCV even more right
 
 **Critical**: When modifying the diagram:
-1. Maintain accurate QWERTY row stagger offsets
-2. Include ghost keys for spatial context
-3. Update `ALLOWED_KEYS` constant if adding new keys
-4. Test visual layout matches a real keyboard
-5. Verify keyboard diagram matches allowed keys exactly
+1. QWERTY row MUST have 0 left padding (leftmost position)
+2. Home row shifts RIGHT by ~18px (not left!)
+3. Bottom row shifts even MORE right by ~54px
+4. Include ghost keys at opacity 0.2 for spatial context
+5. Verify against a real keyboard photo before committing
 
 ### Adding Pokemon Type Sentences
 
