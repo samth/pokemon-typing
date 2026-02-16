@@ -7,6 +7,21 @@ This is a beginner-friendly typing trainer web app featuring Pokemon and My Litt
 **Live Site**: https://samth.github.io/pokemon-typing/
 **Repository**: https://github.com/samth/pokemon-typing
 
+## Quick Reference
+
+**Common Mistakes to Avoid:**
+1. ❌ Using `&nbsp;` for spaces (prevents word wrapping)
+2. ❌ Using `justify-content: center` on keyboard rows (breaks stagger)
+3. ❌ Setting ghost key opacity too low (<0.4 is invisible on dark bg)
+4. ❌ Using `overflow-wrap: anywhere` (breaks words mid-character)
+5. ❌ Forgetting to test with `./screenshot.sh long` before committing
+
+**Before Every Commit:**
+- [ ] Test keyboard layout accuracy (compare to real QWERTY)
+- [ ] Test word wrapping with `./screenshot.sh long`
+- [ ] Verify both simple and advanced modes work
+- [ ] Check console for sentence validation errors
+
 ## Tech Stack
 
 - **Pure HTML/CSS/JavaScript** - Single `index.html` file
@@ -159,14 +174,29 @@ Co-Authored-By: Happy <yesreply@happy.engineering>
 
 ## Testing Checklist
 
-Before pushing changes:
+**Before pushing changes:**
 
+```bash
+# Quick visual tests
+./screenshot.sh long      # Test long sentence wrapping
+./screenshot.sh advanced  # Test advanced mode keyboard
+./screenshot.sh           # Test default state
+
+# Browser tests
+open index.html           # Visual check
+open index.html?test=long # Test word wrapping
+open index.html?advanced=true # Test advanced mode
+```
+
+**Verify:**
 - [ ] Test in browser locally (open index.html)
+- [ ] Word wrapping works: `./screenshot.sh long` - no mid-word breaks
+- [ ] Keyboard layout accurate: compare screenshot to real QWERTY
 - [ ] Try both Pokemon and MLP modes
-- [ ] Toggle advanced mode on/off
+- [ ] Toggle advanced mode on/off (keyboard ghost keys should change)
 - [ ] Complete at least one full round
 - [ ] Check that preferences persist (reload page)
-- [ ] Verify no console errors
+- [ ] Verify no console errors (especially sentence validation)
 - [ ] Test on mobile viewport if UI changes
 - [ ] Ensure all sentences use valid characters (simple mode)
 
@@ -206,12 +236,24 @@ Q W E R T Y U ...           ← Top row: 0px (leftmost)
 ❌ Setting home row to 0 and shifting QWERTY/ZXCV rows left - this is backwards!
 ✅ QWERTY at 0, shift ASDF right, shift ZXCV even more right
 
-**Critical**: When modifying the diagram:
-1. QWERTY row MUST have 0 left padding (leftmost position)
-2. Home row shifts RIGHT by ~18px (not left!)
-3. Bottom row shifts even MORE right by ~54px
-4. Include ghost keys at opacity 0.2 for spatial context
-5. Verify against a real keyboard photo before committing
+**Critical keyboard requirements:**
+1. QWERTY row: `0px` left padding (leftmost position)
+2. Home row: `22px` left padding (shift RIGHT)
+3. Bottom row: `66px` left padding (shift even MORE right)
+4. Ghost keys: `opacity: 0.4` (0.2 is too dim on dark background)
+5. Row alignment: `justify-content: flex-start` (NOT center!)
+6. Ghost key class: `.ghost` with CSS that changes in advanced mode
+7. Advanced mode: All keys visible (body.advanced-mode .key.ghost)
+
+**Visual verification:**
+```bash
+./screenshot.sh
+# Manually verify:
+# - E is above D (not above S)
+# - C is below D (not below S)
+# - Clear diagonal stagger visible
+# - Ghost keys are visible but dimmed
+```
 
 ### Adding Pokemon Type Sentences
 
@@ -242,6 +284,81 @@ Edit CSS variables in `:root`:
 - **Accessibility**: Input field must stay focusable for keyboard use
 - **Performance**: Minimize API calls, use retries, cache in localStorage if needed
 - **Mobile**: Touch targets should be large enough (current design works)
+
+## Critical Implementation Details
+
+### Word Wrapping
+**NEVER use `&nbsp;` for spaces in the speech bubble!**
+
+❌ **Wrong** (breaks word wrapping):
+```javascript
+if (char === ' ') char = '&nbsp;';
+```
+
+✅ **Correct** (allows wrapping):
+```javascript
+if (char === ' ') char = ' '; // Regular space
+```
+
+**CSS for proper word wrapping:**
+```css
+.speech-bubble {
+  white-space: normal;        /* Allow wrapping */
+  text-align: left;           /* Better for long text */
+  min-width: 300px;           /* Room to wrap */
+  max-width: 90%;             /* Responsive */
+}
+```
+
+**Why this matters:**
+- `&nbsp;` = non-breaking space = browser can't wrap there
+- Each character is in a `<span>` so browser needs real spaces to wrap
+- Wrong: "When it shares the infinite ener gy it cr eates" (breaks mid-word)
+- Right: "When it shares the infinite energy / it creates" (breaks between words)
+
+### Advanced Mode Keyboard Behavior
+
+When user enables advanced mode, ghost keys must become visible since any character might be needed.
+
+**Implementation:**
+```javascript
+// When toggling advanced mode
+if (state.advancedMode) {
+  document.body.classList.add('advanced-mode');
+} else {
+  document.body.classList.remove('advanced-mode');
+}
+```
+
+**CSS:**
+```css
+.key.ghost {
+  opacity: 0.4;  /* Faded in simple mode */
+}
+body.advanced-mode .key.ghost {
+  opacity: 1;    /* Fully visible in advanced mode */
+}
+```
+
+### URL Parameters for Testing
+
+The app supports URL parameters for easier testing:
+
+- `?test=long` - Shows very long sentence to test word wrapping
+- `?test=short` - Shows minimal sentence
+- `?advanced=true` - Enables advanced mode on load
+
+**Implementation in state:**
+```javascript
+const urlParams = new URLSearchParams(window.location.search);
+const urlAdvanced = urlParams.get('advanced') === 'true';
+const urlTest = urlParams.get('test');
+
+// Override sentence in getSentenceForCharacter()
+if (urlTest === 'long') {
+  return 'When it shares the infinite energy...';
+}
+```
 
 ## Future Enhancement Ideas
 
