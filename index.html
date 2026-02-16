@@ -172,6 +172,17 @@
     background: var(--accent-blue);
     color: #fff;
   }
+  .key.ghost {
+    opacity: 0.4;
+    font-size: 10px;
+    pointer-events: none;
+  }
+  /* In advanced mode, show all keys as available */
+  body.advanced-mode .key.ghost {
+    opacity: 1;
+    background: var(--bg-card);
+    color: var(--text-light);
+  }
 
   /* Stats bar */
   .stats-bar {
@@ -580,16 +591,16 @@
 <div class="hand-guide">
   <div class="title">your fingers go here</div>
   <div class="keyboard-row">
-    <div class="key" style="opacity: 0.4; pointer-events: none; font-size: 10px;">q</div>
-    <div class="key" style="opacity: 0.4; pointer-events: none; font-size: 10px;">w</div>
+    <div class="key ghost">q</div>
+    <div class="key ghost">w</div>
     <div class="key used">e</div>
     <div class="key used">r</div>
     <div class="key used">t</div>
-    <div class="key" style="opacity: 0.4; pointer-events: none; font-size: 10px;">y</div>
-    <div class="key" style="opacity: 0.4; pointer-events: none; font-size: 10px;">u</div>
-    <div class="key" style="opacity: 0.4; pointer-events: none; font-size: 10px;">i</div>
-    <div class="key" style="opacity: 0.4; pointer-events: none; font-size: 10px;">o</div>
-    <div class="key" style="opacity: 0.4; pointer-events: none; font-size: 10px;">p</div>
+    <div class="key ghost">y</div>
+    <div class="key ghost">u</div>
+    <div class="key ghost">i</div>
+    <div class="key ghost">o</div>
+    <div class="key ghost">p</div>
   </div>
   <div class="keyboard-row" style="padding-left: 22px;">
     <div class="key home">a</div>
@@ -601,18 +612,18 @@
     <div class="key home">j</div>
     <div class="key home">k</div>
     <div class="key home">l</div>
-    <div class="key" style="opacity: 0.4; pointer-events: none; font-size: 10px;">;</div>
+    <div class="key ghost">;</div>
   </div>
   <div class="keyboard-row" style="padding-left: 66px;">
-    <div class="key" style="opacity: 0.4; pointer-events: none; font-size: 10px;">z</div>
-    <div class="key" style="opacity: 0.4; pointer-events: none; font-size: 10px;">x</div>
+    <div class="key ghost">z</div>
+    <div class="key ghost">x</div>
     <div class="key used">c</div>
     <div class="key used">v</div>
-    <div class="key" style="opacity: 0.4; pointer-events: none; font-size: 10px;">b</div>
+    <div class="key ghost">b</div>
     <div class="key used">n</div>
     <div class="key used">m</div>
-    <div class="key" style="opacity: 0.4; pointer-events: none; font-size: 10px;">,</div>
-    <div class="key" style="opacity: 0.4; pointer-events: none; font-size: 10px;">.</div>
+    <div class="key ghost">,</div>
+    <div class="key ghost">.</div>
   </div>
 </div>
 
@@ -993,6 +1004,10 @@ const sentences = {
 };
 
 // === STATE ===
+// Check URL parameters for testing
+const urlParams = new URLSearchParams(window.location.search);
+const urlAdvanced = urlParams.get('advanced') === 'true';
+
 let state = {
   targetText: '',
   typed: '',
@@ -1005,7 +1020,7 @@ let state = {
   accuracies: [],
   currentCharacter: null,
   mode: localStorage.getItem('typingMode') || 'pokemon', // 'pokemon' or 'mlp'
-  advancedMode: localStorage.getItem('advancedMode') === 'true', // Use API sentences
+  advancedMode: urlAdvanced || (localStorage.getItem('advancedMode') === 'true'), // Use API sentences
 };
 
 // === DOM REFS ===
@@ -1476,11 +1491,13 @@ function updateAdvancedModeUI() {
     $advancedCheckbox.style.borderColor = 'var(--accent-yellow)';
     $advancedLabel.style.color = 'var(--accent-yellow)';
     checkmark.style.display = 'block';
+    document.body.classList.add('advanced-mode');
   } else {
     $advancedCheckbox.style.background = 'transparent';
     $advancedCheckbox.style.borderColor = 'var(--text-dim)';
     $advancedLabel.style.color = 'var(--text-dim)';
     checkmark.style.display = 'none';
+    document.body.classList.remove('advanced-mode');
   }
 }
 
