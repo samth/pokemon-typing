@@ -1,11 +1,30 @@
 #!/bin/bash
-# Screenshot script for testing keyboard layout
+# Screenshot script for testing
 
-OUTPUT="${1:-/tmp/typing-screenshot.png}"
-URL="${2:-file://$(pwd)/index.html}"
+# Parse arguments
+TEST_MODE=""
+OUTPUT="/tmp/typing-screenshot.png"
+BASE_URL="file://$(pwd)/index.html"
 
-echo "Taking screenshot of: $URL"
-echo "Output: $OUTPUT"
+# Quick test modes
+case "$1" in
+  long|short|advanced)
+    TEST_MODE="$1"
+    OUTPUT="/tmp/test-$1.png"
+    ;;
+  *)
+    [ -n "$1" ] && OUTPUT="$1"
+    [ -n "$2" ] && BASE_URL="$2"
+    ;;
+esac
+
+# Build URL with test parameters
+URL="$BASE_URL"
+[ "$TEST_MODE" = "long" ] && URL="$BASE_URL?test=long"
+[ "$TEST_MODE" = "short" ] && URL="$BASE_URL?test=short"
+[ "$TEST_MODE" = "advanced" ] && URL="$BASE_URL?advanced=true"
+
+echo "📸 Screenshot: $OUTPUT"
 
 google-chrome \
   --headless=new \
@@ -13,14 +32,15 @@ google-chrome \
   --screenshot="$OUTPUT" \
   --window-size=1400,900 \
   --no-sandbox \
-  "$URL" 2>&1 | grep -v "DevTools\|GPU\|vaapi"
+  --virtual-time-budget=10000 \
+  "$URL" 2>&1 | grep -v "DevTools\|GPU\|vaapi" || true
 
-sleep 2
+sleep 1
 
 if [ -f "$OUTPUT" ]; then
-  echo "✓ Screenshot saved: $OUTPUT"
-  ls -lh "$OUTPUT"
+  echo "✓ Saved $(du -h "$OUTPUT" | cut -f1)"
+  [ -n "$DISPLAY" ] && which feh &>/dev/null && feh "$OUTPUT" &
 else
-  echo "✗ Failed to create screenshot"
+  echo "✗ Failed"
   exit 1
 fi

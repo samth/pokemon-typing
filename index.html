@@ -300,14 +300,12 @@
     padding: 20px 24px;
     margin: 0 auto 20px;
     max-width: 90%;
-    width: fit-content;
+    min-width: 300px;
     font-size: 18px;
     line-height: 1.6;
-    text-align: center;
+    text-align: left;
     box-shadow: 0 8px 24px rgba(0,0,0,0.3);
     animation: bubble-pop 0.4s ease;
-    word-break: normal;
-    overflow-wrap: anywhere;
     white-space: normal;
   }
   .speech-bubble::after {
@@ -1257,8 +1255,11 @@ function renderPrompt() {
     }
 
     let char = target[i];
-    if (char === ' ') char = '&nbsp;';
-    else char = char.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    if (char === ' ') {
+      char = ' '; // Keep as regular space for word wrapping
+    } else {
+      char = char.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
 
     html += `<span class="${cls}">${char}</span>`;
   }
