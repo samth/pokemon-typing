@@ -306,8 +306,9 @@
     text-align: center;
     box-shadow: 0 8px 24px rgba(0,0,0,0.3);
     animation: bubble-pop 0.4s ease;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+    word-break: normal;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
   .speech-bubble::after {
     content: '';
@@ -1007,6 +1008,7 @@ const sentences = {
 // Check URL parameters for testing
 const urlParams = new URLSearchParams(window.location.search);
 const urlAdvanced = urlParams.get('advanced') === 'true';
+const urlTest = urlParams.get('test'); // 'long', 'short', etc.
 
 let state = {
   targetText: '',
@@ -1113,6 +1115,14 @@ async function fetchCharacter() {
 }
 
 function getSentenceForCharacter(character) {
+  // Test mode override
+  if (urlTest === 'long') {
+    return 'When it shares the infinite energy it creates using its psychic powers, the mind of the recipient is cleansed and healed of all negativity.';
+  }
+  if (urlTest === 'short') {
+    return 'test';
+  }
+
   // If advanced mode is on and we have flavor text from Pokemon API, use it
   if (state.advancedMode && state.mode === 'pokemon' && character.flavorText) {
     return character.flavorText;
